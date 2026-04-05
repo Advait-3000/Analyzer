@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pytesseract
+opencv-python
+pillow
+pandas
+matplotlib
+seaborn
+python-multipart
