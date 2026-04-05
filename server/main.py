@@ -4,8 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
 
-from ocr import extract_text
-from analyzer import text_to_dataframe, generate_graph
+from server.ocr import extract_text
+from server.analyzer import text_to_dataframe, generate_graph
 
 app = FastAPI()
 
