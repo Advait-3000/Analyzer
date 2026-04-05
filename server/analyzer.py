@@ -24,8 +24,8 @@ def generate_graph(df):
     import io
     import base64
 
-    plt.figure()
-    df.plot(x="Name", y="Value", kind="bar")
+    ax = df.plot(x="Name", y="Value", kind="bar")
+fig = ax.get_figure()
     plt.tight_layout()
 
     buf = io.BytesIO()

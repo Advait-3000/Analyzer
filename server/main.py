@@ -1,14 +1,14 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-import shutil
-import os
+from fastapi.responses import JSONResponse
 
-from server.ocr import extract_text
+# Keep imports lightweight at top
 from server.analyzer import text_to_dataframe, generate_graph
+from server.ocr import extract_text
 
 app = FastAPI()
 
+# CORS (update later with your frontend URL)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,51 +17,68 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Removed disk writes per refactoring to purely in-memory architecture
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
+# -------------------------------
+# Health / Root Route (IMPORTANT)
+# -------------------------------
 @app.get("/")
 def home():
-    return {"message": "OCR Analyzer API Running 🚀"}
+    return {"status": "ok", "message": "OCR Analyzer API Running 🚀"}
 
 
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
+
+
+# -------------------------------
+# Upload Endpoint (IN-MEMORY)
+# -------------------------------
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     try:
-        # Read the file directly into memory
+        # Read file into memory
         content = await file.read()
 
-        # Step 1: OCR
+        if not content:
+            raise HTTPException(status_code=400, detail="Empty file uploaded")
+
+        # -----------------------
+        # OCR Processing
+        # -----------------------
         text = extract_text(content)
 
-        if not text.strip():
-            return {
+        if not text or not text.strip():
+            return JSONResponse({
                 "message": "No text detected",
                 "text": ""
-            }
+            })
 
-        # Step 2: Try to structure data
+        # -----------------------
+        # Convert to DataFrame
+        # -----------------------
         df = text_to_dataframe(text)
 
-        # Step 3: If structured → graph
+        # -----------------------
+        # Generate Graph (IN-MEMORY)
+        # -----------------------
         if not df.empty:
             image_base64 = generate_graph(df)
 
-            return {
+            return JSONResponse({
                 "message": "Structured data detected",
                 "text": text,
                 "table": df.to_dict(orient="records"),
                 "graph": f"data:image/png;base64,{image_base64}"
-            }
+            })
 
-        # Step 4: If not structured → just text
-        return {
+        # -----------------------
+        # Plain Text Response
+        # -----------------------
+        return JSONResponse({
             "message": "Plain text (no structured data found)",
             "text": text
-        }
+        })
 
     except Exception as e:
+        print("ERROR:", str(e))  # logs visible on Render
         raise HTTPException(status_code=500, detail=str(e))
-
-
