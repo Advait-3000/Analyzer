@@ -20,9 +20,15 @@ function App() {
       });
 
       const data = await res.json();
+      
+      if (!res.ok) {
+        throw new Error(data.detail || 'Failed to upload and analyze');
+      }
+
       setResult(data);
     } catch (err) {
       console.error(err);
+      setResult({ message: `Error: ${err.message}` });
     }
 
     setLoading(false);
