@@ -26,7 +26,8 @@ def generate_graph(df):
 
     os.makedirs("uploads", exist_ok=True)
     file_path = os.path.join("uploads", "graph.png")
-    plt.savefig(file_path)
+    plt.tight_layout()
+    plt.savefig(file_path, bbox_inches='tight')
     plt.close()
 
     return file_path
