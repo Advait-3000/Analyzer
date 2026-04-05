@@ -201,7 +201,7 @@ function App() {
                 <div className="p-6 flex justify-center bg-white/5">
                   <div className="bg-white rounded-xl shadow-inner border border-border/20 p-2 max-w-full overflow-hidden inline-block">
                     <img
-                      src={`https://analyzer-604r.onrender.com/${result.graph}`}
+                      src={`https://analyzer-604r.onrender.com${result.graph}`}
                       alt="Extracted Data Graph"
                       className="max-w-full h-auto rounded-lg object-contain mix-blend-multiply"
                     />
