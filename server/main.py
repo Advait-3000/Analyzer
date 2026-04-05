@@ -51,12 +51,13 @@ async def upload_file(file: UploadFile = File(...)):
         # Step 3: If structured → graph
         if not df.empty:
             graph_path = generate_graph(df)
+            filename = os.path.basename(graph_path)
 
             return {
                 "message": "Structured data detected",
                 "text": text,
                 "table": df.to_dict(orient="records"),
-                "graph": f"/graph"
+                "graph": f"/graph/{filename}"
             }
 
         # Step 4: If not structured → just text
@@ -69,9 +70,9 @@ async def upload_file(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.get("/graph")
-def get_graph():
-    graph_path = os.path.join(UPLOAD_DIR, "graph.png")
+@app.get("/graph/{filename}")
+def get_graph(filename: str):
+    graph_path = os.path.join(UPLOAD_DIR, filename)
 
     if not os.path.exists(graph_path):
         raise HTTPException(status_code=404, detail="Graph not found")

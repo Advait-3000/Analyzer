@@ -22,13 +22,23 @@ def text_to_dataframe(text):
 
 def generate_graph(df):
     import os
+    import uuid
+    import glob
 
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
 
     os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-    file_path = os.path.join(UPLOAD_DIR, "graph.png")
+    # Cleanup old graphs to avoid storage bloating
+    for old_file in glob.glob(os.path.join(UPLOAD_DIR, "graph_*.png")):
+        try:
+            os.remove(old_file)
+        except OSError:
+            pass
+
+    unique_filename = f"graph_{uuid.uuid4().hex}.png"
+    file_path = os.path.join(UPLOAD_DIR, unique_filename)
 
     plt.figure()
     df.plot(x="Name", y="Value", kind="bar")
