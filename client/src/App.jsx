@@ -17,7 +17,7 @@ function App() {
     setResult(null);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/upload", {
+      const res = await fetch("https://analyzer-604r.onrender.com/upload", {
         method: "POST",
         body: formData,
       });
