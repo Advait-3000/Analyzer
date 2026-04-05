@@ -56,7 +56,7 @@ async def upload_file(file: UploadFile = File(...)):
                 "message": "Structured data detected",
                 "text": text,
                 "table": df.to_dict(orient="records"),
-                "graph": f"/graph?timestamp={os.path.getmtime(graph_path)}"
+                "graph": f"/graph"
             }
 
         # Step 4: If not structured → just text

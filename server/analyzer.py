@@ -21,13 +21,22 @@ def text_to_dataframe(text):
 
 
 def generate_graph(df):
+    import os
+
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+
+    file_path = os.path.join(UPLOAD_DIR, "graph.png")
+
     plt.figure()
     df.plot(x="Name", y="Value", kind="bar")
 
-    os.makedirs("uploads", exist_ok=True)
-    file_path = os.path.join("uploads", "graph.png")
     plt.tight_layout()
     plt.savefig(file_path, bbox_inches='tight')
     plt.close()
+
+    print("Graph saved at:", file_path)  # DEBUG
 
     return file_path
