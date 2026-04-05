@@ -17,9 +17,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Removed disk writes per refactoring to purely in-memory architecture
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @app.get("/")
@@ -30,14 +29,11 @@ def home():
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
     try:
-        file_path = os.path.join(UPLOAD_DIR, file.filename)
-
-        # Save file
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        # Read the file directly into memory
+        content = await file.read()
 
         # Step 1: OCR
-        text = extract_text(file_path)
+        text = extract_text(content)
 
         if not text.strip():
             return {
@@ -50,14 +46,13 @@ async def upload_file(file: UploadFile = File(...)):
 
         # Step 3: If structured → graph
         if not df.empty:
-            graph_path = generate_graph(df)
-            filename = os.path.basename(graph_path)
+            image_base64 = generate_graph(df)
 
             return {
                 "message": "Structured data detected",
                 "text": text,
                 "table": df.to_dict(orient="records"),
-                "graph": f"/graph/{filename}"
+                "graph": f"data:image/png;base64,{image_base64}"
             }
 
         # Step 4: If not structured → just text
@@ -69,12 +64,4 @@ async def upload_file(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.get("/graph/{filename}")
-def get_graph(filename: str):
-    graph_path = os.path.join(UPLOAD_DIR, filename)
-
-    if not os.path.exists(graph_path):
-        raise HTTPException(status_code=404, detail="Graph not found")
-
-    return FileResponse(graph_path)
+

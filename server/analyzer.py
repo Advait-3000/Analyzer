@@ -21,32 +21,17 @@ def text_to_dataframe(text):
 
 
 def generate_graph(df):
-    import os
-    import uuid
-    import glob
-
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-
-    os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-    # Cleanup old graphs to avoid storage bloating
-    for old_file in glob.glob(os.path.join(UPLOAD_DIR, "graph_*.png")):
-        try:
-            os.remove(old_file)
-        except OSError:
-            pass
-
-    unique_filename = f"graph_{uuid.uuid4().hex}.png"
-    file_path = os.path.join(UPLOAD_DIR, unique_filename)
+    import io
+    import base64
 
     plt.figure()
     df.plot(x="Name", y="Value", kind="bar")
-
     plt.tight_layout()
-    plt.savefig(file_path, bbox_inches='tight')
+
+    buf = io.BytesIO()
+    plt.savefig(buf, format="png", bbox_inches='tight')
     plt.close()
-
-    print("Graph saved at:", file_path)  # DEBUG
-
-    return file_path
+    
+    buf.seek(0)
+    image_base64 = base64.b64encode(buf.getvalue()).decode("utf-8")
+    return image_base64
