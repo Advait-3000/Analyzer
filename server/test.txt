@@ -1,3 +1,0 @@
-﻿Name Value
-Item1 10
-Item2 20

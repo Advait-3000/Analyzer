@@ -1,84 +1,74 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-
-# Keep imports lightweight at top
-from server.analyzer import text_to_dataframe, generate_graph
-from server.ocr import extract_text
-
+from PIL import Image
+import pytesseract
+import pandas as pd
+import matplotlib.pyplot as plt
+import io
+# Initialize FastAPI app
 app = FastAPI()
-
-# CORS (update later with your frontend URL)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # allow all (for development)
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# IMPORTANT (for Windows)
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
-# -------------------------------
-# Health / Root Route (IMPORTANT)
-# -------------------------------
+
+# -----------------------------
+# 1. GET ROUTE (Health Check)
+# -----------------------------
 @app.get("/")
-def home():
-    return {"status": "ok", "message": "OCR Analyzer API Running 🚀"}
+def root():
+    return {"message": "Backend is working 🚀"}
 
 
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
+# -----------------------------
+# 2. POST ROUTE (Full Pipeline)
+# -----------------------------
+@app.post("/process")
+async def process(file: UploadFile = File(...)):
+    
+    # Step 1: Read image
+    image = Image.open(file.file)
 
+    # Step 2: OCR → Extract text
+    text = pytesseract.image_to_string(image)
 
-# -------------------------------
-# Upload Endpoint (IN-MEMORY)
-# -------------------------------
-@app.post("/upload")
-async def upload_file(file: UploadFile = File(...)):
-    try:
-        # Read file into memory
-        content = await file.read()
+    # Step 3: Convert text → structured data
+    lines = text.strip().split("\n")
+    data = []
 
-        if not content:
-            raise HTTPException(status_code=400, detail="Empty file uploaded")
+    for line in lines:
+        parts = line.split()
+        if len(parts) == 2:
+            try:
+                label = parts[0]
+                value = float(parts[1])
+                data.append((label, value))
+            except:
+                continue
 
-        # -----------------------
-        # OCR Processing
-        # -----------------------
-        text = extract_text(content)
+    # Step 4: Create DataFrame
+    df = pd.DataFrame(data, columns=["Label", "Value"])
 
-        if not text or not text.strip():
-            return JSONResponse({
-                "message": "No text detected",
-                "text": ""
-            })
+    # Step 5: Generate graph
+    plt.figure()
+    plt.bar(df["Label"], df["Value"])
+    plt.xlabel("Label")
+    plt.ylabel("Value")
+    plt.title("Extracted Data Visualization")
+    plt.tight_layout()
 
-        # -----------------------
-        # Convert to DataFrame
-        # -----------------------
-        df = text_to_dataframe(text)
+    # Step 6: Save graph to memory (NOT file)
+    buffer = io.BytesIO()
+    plt.savefig(buffer, format="png")
+    buffer.seek(0)
+    plt.close()
 
-        # -----------------------
-        # Generate Graph (IN-MEMORY)
-        # -----------------------
-        if not df.empty:
-            image_base64 = generate_graph(df)
-
-            return JSONResponse({
-                "message": "Structured data detected",
-                "text": text,
-                "table": df.to_dict(orient="records"),
-                "graph": f"data:image/png;base64,{image_base64}"
-            })
-
-        # -----------------------
-        # Plain Text Response
-        # -----------------------
-        return JSONResponse({
-            "message": "Plain text (no structured data found)",
-            "text": text
-        })
-
-    except Exception as e:
-        print("ERROR:", str(e))  # logs visible on Render
-        raise HTTPException(status_code=500, detail=str(e))
+    # Step 7: Return graph as response
+    return StreamingResponse(buffer, media_type="image/png")
