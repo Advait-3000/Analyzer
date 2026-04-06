@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import "./App.css";
 
 // const BASE_URL = "http://127.0.0.1:8000";
-const BASE_URL = "https://analyzer-qu6i.onrender.com";
+const BASE_URL = "https://analyzer-6mya.onrender.com";
 
 function App() {
   const [file, setFile] = useState(null);
